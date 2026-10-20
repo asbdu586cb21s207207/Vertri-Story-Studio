@@ -1,0 +1,192 @@
+
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vetriyin Kural - AI Story Studio</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#0b1020;color:#f1f5f9}
+header{background:linear-gradient(135deg,#263d80,#712f76);padding:25px 15px;text-align:center}
+header h1{margin:0 0 10px}
+main{max-width:900px;margin:auto;padding:14px}
+.card{background:#172238;border:1px solid #34435e;border-radius:14px;padding:16px;margin-bottom:15px}
+h2{font-size:20px}
+label{display:block;margin:12px 0 6px;color:#cbd5e1}
+input,textarea,select{width:100%;padding:12px;border-radius:8px;border:1px solid #455571;background:#0d1729;color:white;font:inherit}
+textarea{min-height:90px}
+button{background:#8ba8ff;color:#10182c;border:0;border-radius:8px;padding:11px;margin:6px 4px 4px 0;font-weight:bold}
+.secondary{background:#293954;color:white}
+.scene{background:#101a2d;border:1px solid #34435e;border-radius:10px;padding:13px;margin-top:12px}
+.small{color:#b5c1d5;font-size:13px;line-height:1.6}
+</style>
+</head>
+<body>
+<header>
+<h1>🎬 வெற்றியின் குரல்</h1>
+<p>AI Story Studio | Create • Save • Download</p>
+</header>
+<main>
+<section class="card">
+<h2>📚 கதை விவரங்கள்</h2>
+<label>கதையின் பெயர்</label>
+<input id="title" placeholder="உதா: விடாமுயற்சியின் வெற்றி">
+<label>கதை சுருக்கம்</label>
+<textarea id="summary" placeholder="உங்கள் கதையை எழுதுங்கள்"></textarea>
+<label>கதை வகை</label>
+<select id="genre">
+<option>நீதி கதை</option>
+<option>குழந்தைகள் கதை</option>
+<option>நகைச்சுவை</option>
+<option>சாகசக் கதை</option>
+<option>மர்மக் கதை</option>
+</select>
+<label>முக்கிய கதாபாத்திரம்</label>
+<textarea id="character" placeholder="கதாபாத்திரத்தின் தோற்றம், உடை, வயது"></textarea>
+<button onclick="addScene()">＋ காட்சி சேர்க்க</button>
+<button onclick="saveData()">💾 சேமிக்க</button>
+<button onclick="downloadText()">⬇ TXT Download</button>
+<button class="secondary" onclick="downloadJSON()">Project JSON</button>
+<p id="status" class="small"></p>
+</section>
+
+<section class="card">
+<h2>🎞️ Scene Manager</h2>
+<p class="small">ஒவ்வொரு காட்சிக்கும் தனித்தனியாக prompts மற்றும் தமிழ் voice-over சேர்க்கலாம்.</p>
+<div id="scenes"></div>
+</section>
+
+<section class="card">
+<h2>🎤 தமிழ் Voice-over</h2>
+<textarea id="voice" placeholder="தமிழ் கதை வசனத்தை இங்கே எழுதுங்கள்"></textarea>
+<button onclick="speak()">🔊 குரல் கேட்க</button>
+<p class="small">குரல் வசதி உங்கள் browser-ல் தமிழ் voice கிடைப்பதைப் பொறுத்தது.</p>
+</section>
+
+<section class="card">
+<h2>ℹ️ முக்கிய குறிப்பு</h2>
+<p class="small">இந்த website கதை மற்றும் prompts-ஐ நிர்வகிக்க உதவும். AI படங்கள் மற்றும் வீடியோக்களைத் தானாக உருவாக்க, வெளிப்புற AI சேவையை இணைக்க வேண்டும்.</p>
+</section>
+</main>
+
+<script>
+let scenes=[];
+let nextId=1;
+const $=id=>document.getElementById(id);
+
+function addScene(data={}){
+scenes.push({
+id:nextId++,
+name:data.name||"புதிய காட்சி",
+image:data.image||"",
+video:data.video||"",
+voice:data.voice||""
+});
+render();
+}
+
+function render(){
+$("scenes").innerHTML=scenes.map((s,i)=>`
+<div class="scene">
+<h3>காட்சி ${i+1}</h3>
+<label>காட்சி பெயர்</label>
+<input value="${esc(s.name)}" onchange="edit(${i},'name',this.value)">
+<label>Image Prompt (English)</label>
+<textarea onchange="edit(${i},'image',this.value)">${esc(s.image)}</textarea>
+<button class="secondary" onclick="copyPrompt(${i},'image')">Copy Image Prompt</button>
+<label>Video Prompt (English)</label>
+<textarea onchange="edit(${i},'video',this.value)">${esc(s.video)}</textarea>
+<button class="secondary" onclick="copyPrompt(${i},'video')">Copy Video Prompt</button>
+<label>தமிழ் Voice-over</label>
+<textarea onchange="edit(${i},'voice',this.value)">${esc(s.voice)}</textarea>
+<button class="secondary" onclick="copyPrompt(${i},'voice')">Copy Voice-over</button>
+<button onclick="removeScene(${i})">காட்சி நீக்கு</button>
+</div>`).join("");
+}
+
+function esc(v){
+return String(v||"").replace(/[&<>"']/g,c=>({
+"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
+}
+
+function edit(i,k,v){scenes[i][k]=v}
+function removeScene(i){scenes.splice(i,1);render()}
+function copyPrompt(i,k){
+navigator.clipboard.writeText(scenes[i][k]).then(()=>alert("Copy செய்யப்பட்டது")).catch(()=>alert(scenes[i][k]));
+}
+
+function project(){
+return {
+title:$("title").value,
+summary:$("summary").value,
+genre:$("genre").value,
+character:$("character").value,
+voice:$("voice").value,
+scenes:scenes
+};
+}
+
+function saveData(){
+try{
+localStorage.setItem("vetriStory",JSON.stringify(project()));
+$("status").textContent="இந்த browser-ல் சேமிக்கப்பட்டது!";
+}catch(e){
+$("status").textContent="சேமிக்க முடியவில்லை. Project JSON download செய்யுங்கள்.";
+}
+}
+
+function downloadFile(name,content,type){
+let a=document.createElement("a");
+let url=URL.createObjectURL(new Blob([content],{type:type}));
+a.href=url;a.download=name;a.click();
+setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+
+function downloadJSON(){
+downloadFile("vetri-story.json",JSON.stringify(project(),null,2),"application/json");
+}
+
+function downloadText(){
+let p=project();
+let out="வெற்றியின் குரல்\n"+p.title+"\n\n"+p.summary+"\n\n";
+p.scenes.forEach((s,i)=>{
+out+="காட்சி "+(i+1)+": "+s.name+"\n";
+out+="IMAGE PROMPT:\n"+s.image+"\n\n";
+out+="VIDEO PROMPT:\n"+s.video+"\n\n";
+out+="VOICE OVER:\n"+s.voice+"\n\n------------------\n";
+});
+downloadFile("vetri-story.txt",out,"text/plain;charset=utf-8");
+}
+
+function speak(){
+let text=$("voice").value;
+if(!text){alert("முதலில் தமிழ் வசனம் எழுதுங்கள்");return}
+if(!("speechSynthesis" in window)){alert("இந்த browser-ல் குரல் வசதி இல்லை");return}
+let u=new SpeechSynthesisUtterance(text);
+u.lang="ta-IN";
+speechSynthesis.cancel();
+speechSynthesis.speak(u);
+}
+
+try{
+let old=JSON.parse(localStorage.getItem("vetriStory")||"null");
+if(old){
+$("title").value=old.title||"";
+$("summary").value=old.summary||"";
+$("character").value=old.character||"";
+$("voice").value=old.voice||"";
+if(old.genre)$("genre").value=old.genre;
+scenes=old.scenes||[];
+nextId=scenes.reduce((m,s)=>Math.max(m,s.id||0),0)+1;
+}
+}catch(e){}
+if(!scenes.length){
+addScene({name:"காட்சி 1 - அறிமுகம்"});
+addScene({name:"காட்சி 2 - பிரச்சினை"});
+addScene({name:"காட்சி 3 - நீதி"});
+}else{render()}
+</script>
+</body>
+</html>
